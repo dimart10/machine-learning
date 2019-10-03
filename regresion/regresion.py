@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from pandas.io.parsers import read_csv
 
 def load_csv(file_name):
@@ -11,15 +12,21 @@ def load_csv(file_name):
 
 def gradient_descent(X, Y, alpha, iterations):
     m = np.shape(X)[0]
-    thetas = np.zeros((2, m), dtype=float)
+    thetas = np.zeros((2, 1), dtype=float)
+    costs = np.empty(iterations)
+    thetasHistory = np.empty([iterations, np.shape(thetas)[0]])
     
     for i in range(iterations):
         H = h(X, thetas)
         thetas = thetas - (alpha*(1/m) * (X.T.dot(H - Y)))
 
-        print("Cost [", i, "]: ", cost(X, Y, thetas))
+        print(thetas)
+        thetasHistory[i] = thetas[:][i]
+        print(thetasHistory[i])
+        costs[i] = cost(X, Y, thetas)
+        print("Cost [", i, "]: ", costs[i])
 
-    return [0, 0]
+    return thetasHistory, costs
 
 def cost(X, Y, thetas):
     m = np.shape(X)[0]
@@ -29,6 +36,7 @@ def h(X, thetas):
     return np.dot(X, thetas)
 
 def main():
+    # DATA PREPROCESSING
     datos = load_csv("ex1data1.csv")
     X = datos[:, :-1]
     Y = datos[:, -1]
@@ -39,7 +47,19 @@ def main():
     X = np.hstack([np.ones([m, 1]), X])
     alpha = 0.01
 
-    thetas, costs = gradient_descent(X, Y, alpha, 10000)
+    # TRAINING
+    thetas, costs = gradient_descent(X, Y, alpha, 10001)
+
+    # PREDICTION
+    prediction = h(X, thetas)
+
+    # RESULTS
+    """plt.figure()
+    plt.scatter(X[1], Y[0], c='red')
+    plt.plot(prediction, 'x', c='blue')
+    plt.savefig('mc.pdf')
+    plt.show()
+    plt.close()"""
 
 if __name__ == "__main__":
     main()
