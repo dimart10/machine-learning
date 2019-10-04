@@ -11,18 +11,16 @@ def load_csv(file_name):
     return valores.astype(float)
 
 def gradient_descent(X, Y, alpha, iterations):
-    m = np.shape(X)[0]
+    m = float(np.shape(X)[0])
     thetas = np.zeros((2, 1), dtype=float)
     costs = np.empty(iterations)
-    thetasHistory = np.empty([iterations, np.shape(thetas)[0]])
-    
+    thetasHistory = np.empty((iterations, np.shape(thetas)[0]))
+
     for i in range(iterations):
         H = h(X, thetas)
-        thetas = thetas - (alpha*(1/m) * (X.T.dot(H - Y)))
+        thetas = thetas - (alpha * (1/m) * (X.T.dot(H - Y)))
 
-        print(thetas)
-        thetasHistory[i] = thetas[:][i]
-        print(thetasHistory[i])
+        thetasHistory[i] = thetas.T
         costs[i] = cost(X, Y, thetas)
         print("Cost [", i, "]: ", costs[i])
 
@@ -39,7 +37,7 @@ def main():
     # DATA PREPROCESSING
     datos = load_csv("ex1data1.csv")
     X = datos[:, :-1]
-    Y = datos[:, -1]
+    Y = datos[:, -1][np.newaxis].T
 
     m = np.shape(X)[0]
     n = np.shape(X)[1]
@@ -48,18 +46,25 @@ def main():
     alpha = 0.01
 
     # TRAINING
-    thetas, costs = gradient_descent(X, Y, alpha, 10001)
+    thetas, costs = gradient_descent(X, Y, alpha, 1000)
 
     # PREDICTION
-    prediction = h(X, thetas)
+    prediction = h(X, thetas[-1,:][np.newaxis].T)
 
     # RESULTS
-    """plt.figure()
-    plt.scatter(X[1], Y[0], c='red')
-    plt.plot(prediction, 'x', c='blue')
-    plt.savefig('mc.pdf')
+    plt.figure()
+    plt.scatter(X[:,1], Y[:,0], c='red')
+    plt.plot(X[:,1], prediction)
+    plt.savefig('results.png')
     plt.show()
-    plt.close()"""
+    plt.close()
+
+    plt.figure()
+    plt.plot(costs)
+    plt.savefig('gradient_descent.png')
+    plt.show()
+    plt.close()
+
 
 if __name__ == "__main__":
     main()
