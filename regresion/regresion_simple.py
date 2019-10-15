@@ -35,7 +35,7 @@ def h(X, thetas):
 
 def main():
     # DATA PREPROCESSING
-    datos = load_csv("ex1data1.csv")
+    datos = load_csv("data/ex1data1.csv")
     X = datos[:, :-1]
     Y = datos[:, -1][np.newaxis].T
 
@@ -55,13 +55,13 @@ def main():
     plt.figure()
     plt.scatter(X[:,1], Y[:,0], c='red')
     plt.plot(X[:,1], prediction)
-    plt.savefig('results.png')
+    plt.savefig('images/regresion_simple_results.png')
     plt.show()
     plt.close()
 
     plt.figure()
     plt.plot(costs)
-    plt.savefig('gradient_descent.png')
+    plt.savefig('images/regresion_simple_gradient_descent.png')
     plt.show()
     plt.close()
 
