@@ -3,12 +3,9 @@ import matplotlib.pyplot as plt
 from pandas.io.parsers import read_csv
 
 def load_csv(file_name):
-    """carga el fichero csv especificado y lo devuelve en un array de numpy
-    """
-    valores = read_csv(file_name, header=None).values
+    values = read_csv(file_name, header=None).values
 
-    # suponemos que siempre trabajaremos con float
-    return valores.astype(float)
+    return values.astype(float)
 
 def gradient_descent(X, Y, alpha, iterations):
     m = np.shape(X)[0]
