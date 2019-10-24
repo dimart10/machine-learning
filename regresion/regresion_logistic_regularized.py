@@ -67,16 +67,9 @@ def evaluate(thetas, X, Y):
 
     return errors/(result.shape[0])
 
-def main():
-    # DATA PREPROCESSING
-    datos = load_csv("data/ex2data2.csv")
-    X = datos[:, :-1]
-    Y = datos[:, -1][np.newaxis].T
-
-    poly = PolynomialFeatures(6)
+def train(X, Y, evaluateResults=True, degree=6, lamb=1):
+    poly = PolynomialFeatures(degree)
     X_poly = poly.fit_transform(X)
-
-    lamb = 1
 
     m = np.shape(X_poly)[0]
     n = np.shape(X_poly)[1]
@@ -86,8 +79,19 @@ def main():
     result = opt.fmin_tnc(func=cost, x0=thetas, fprime=gradient, args=(X_poly, Y, lamb))
     thetas = result[0]
 
-    print("Error percentage: ", evaluate(thetas, X_poly, Y)*100, "%")
-    show_decision_boundary(thetas, X, Y, poly)
+    if (evaluate):
+        print("Error percentage: ", evaluate(thetas, X_poly, Y)*100, "%")
+        show_decision_boundary(thetas, X, Y, poly)
+
+    return thetas
+
+def main():
+    # DATA PREPROCESSING
+    datos = load_csv("data/ex2data2.csv")
+    X = datos[:, :-1]
+    Y = datos[:, -1][np.newaxis].T
+
+    train(X, Y)
 
 
 if __name__ == "__main__":
