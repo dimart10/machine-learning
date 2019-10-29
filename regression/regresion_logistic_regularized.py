@@ -47,14 +47,14 @@ def show_decision_boundary(thetas, X, Y, poly):
     h = sigmoid(poly.fit_transform(np.c_[xx1.ravel(), xx2.ravel()]).dot(thetas))
 
     h = h.reshape(xx1.shape)
-    
+
     positives = np.where(Y == 1)
     negatives = np.where(Y == 0)
     plt.scatter(X[positives, 0], X[positives, 1], marker='+', color='blue')
     plt.scatter(X[negatives, 0], X[negatives, 1], color='red')
 
-    plt.contour(xx1, xx2, h, [0.5], linewidths=1, colors='g')    
-    plt.savefig("images/regresion_logistic_regularized.png")    
+    plt.contour(xx1, xx2, h, [0.5], linewidths=1, colors='g')
+    plt.savefig("images/regresion_logistic_regularized.png")
     plt.show()
     plt.close()
 
@@ -67,7 +67,7 @@ def evaluate(thetas, X, Y):
 
     return errors/(result.shape[0])
 
-def train(X, Y, evaluateResults=True, degree=6, lamb=1):
+def train(X, Y, degree=6, lamb=1, evaluateResults=True):
     poly = PolynomialFeatures(degree)
     X_poly = poly.fit_transform(X)
 
@@ -75,11 +75,11 @@ def train(X, Y, evaluateResults=True, degree=6, lamb=1):
     n = np.shape(X_poly)[1]
 
     thetas = np.zeros((n, 1), dtype=float)
-
+    print(thetas.shape)
     result = opt.fmin_tnc(func=cost, x0=thetas, fprime=gradient, args=(X_poly, Y, lamb))
     thetas = result[0]
 
-    if (evaluate):
+    if (evaluateResults):
         print("Error percentage: ", evaluate(thetas, X_poly, Y)*100, "%")
         show_decision_boundary(thetas, X, Y, poly)
 
