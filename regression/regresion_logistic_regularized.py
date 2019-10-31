@@ -4,7 +4,6 @@ from pandas.io.parsers import read_csv
 import scipy.optimize as opt
 from sklearn.preprocessing import PolynomialFeatures
 
-
 def load_csv(file_name):
     values = read_csv(file_name, header=None).values
 
@@ -15,9 +14,6 @@ def gradient(thetas, XX, Y, lamb):
 
     H = h(thetas, XX)
     grad = (1/len(Y)) * np.dot(XX.T, H-Y)
-
-    print(grad)
-
     grad += (lamb/m) * np.c_[thetas]
 
     return grad
@@ -26,7 +22,7 @@ def cost(thetas, X, Y, lamb):
     m = np.shape(X)[0]
     H = h(thetas, X)
 
-    c = (-1/(len(X))) * (np.dot(Y.T, np.log(H)) + np.dot((1-Y).T, np.log(1-H)))
+    c = (-1/m) * (np.dot(Y.T, np.log(H)) + np.dot((1-Y).T, np.log(1-H)))
     c += (lamb/(2*m)) * (thetas**2).sum()
 
     return c
@@ -75,15 +71,14 @@ def train(X, Y, degree=6, lamb=1, evaluateResults=True):
     n = np.shape(X_poly)[1]
 
     thetas = np.zeros((n, 1), dtype=float)
-    print(thetas.shape)
-    result = opt.fmin_tnc(func=cost, x0=thetas, fprime=gradient, args=(X_poly, Y, lamb))
+    result = opt.fmin_tnc(func=cost, x0=thetas, fprime=gradient, args=(X_poly, Y, lamb), messages=False)
     thetas = result[0]
 
     if (evaluateResults):
         print("Error percentage: ", evaluate(thetas, X_poly, Y)*100, "%")
         show_decision_boundary(thetas, X, Y, poly)
 
-    return thetas
+    return X_poly, thetas
 
 def main():
     # DATA PREPROCESSING
