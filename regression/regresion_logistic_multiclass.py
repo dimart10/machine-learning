@@ -32,6 +32,7 @@ def predict(X_poly, modelThetas, realY=[], showResults=True):
                 predictions[:, i] = model.h(modelThetas[i], X_poly).flatten()
 
         finalPrediction = np.argmax(predictions, 1)
+        finalPrediction = np.where(finalPrediction==0, 10, finalPrediction)
         finalPrediction = np.reshape(finalPrediction, (5000, 1))
         if (not showResults): return finalPrediction
         
@@ -44,10 +45,6 @@ def main():
         data = loadmat ("../data/ex3data1.mat")
         Y = data['y']
         X = data['X']
-
-        #sample = np.random.choice(X.shape[0], 10)
-        #plt.imshow(X[sample, :].reshape(-1, 20).T)
-        #plt.show()
 
         trainedModels = train_models(X, Y)
         predict(trainedModels[0], trainedModels[1], Y)
