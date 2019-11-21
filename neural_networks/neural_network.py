@@ -33,30 +33,30 @@ def backwards_propagation(thetas, X, Y, reg):
     m = X.shape[0]
     A, Z, h = forward_propagation(X, thetas)[:-1]
 
+    deltas = thetas
     for example in range(m):
         last_d = h[example, :] - Y[example]
         for layer in range(len(A[:-1]), -1, -1):
-            theta = thetas[layer]
-
+            delta = deltas[layer]
+            
             a = A[layer][example, :]
-            d = np.dot(theta.T, last_d) * (a * (1 - a))
+            d = np.dot(delta.T, last_d) * (a * (1 - a))
 
-            theta += np.dot(last_d[:, np.newaxis], a[np.newaxis, :])
+            delta += np.dot(last_d[:, np.newaxis], a[np.newaxis, :])
             last_d = d[1:]
 
-    gradient = (1 / m) * thetas
+    gradient = (1 / m) * deltas
     
-    cost = cost_function(thetas, X, Y, forward_propagation(X, thetas)[2], 1, 10)
+    cost = cost_function(thetas, X, Y, h, 1, 10)
 
     return (cost, gradient)
 
 def cost_function(thetas, X, Y, h, lamb, num_labels):
         m = X.shape[0]
 
-        y = Y - 1
         y_onehot = np.zeros((m, num_labels))
         for i in range(m):
-                y_onehot[i][y[i]] = 1
+                y_onehot[i][Y[i]] = 1
 
         cost = -y_onehot * np.log(h) - (1 - y_onehot) * np.log(1 - h)
         cost = 1/m * cost.sum()
@@ -87,6 +87,7 @@ def main():
         data = loadmat ("../data/ex4data1.mat")
 
         X, Y = data['X'], data['y']
+        Y = Y-1
 
         theta1 = random_weights(25, 401, 0.12)
         theta2 = random_weights(10, 26, 0.12)
