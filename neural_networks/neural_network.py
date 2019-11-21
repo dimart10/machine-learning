@@ -39,9 +39,8 @@ def backwards_propagation(thetas, X, Y, reg):
             theta = thetas[layer]
             a = A[layer][example, :]
             d = np.dot(theta.T, last_d) * (a * (1 - a)) # (1, 26)
-            print(theta.shape)
-            theta += np.dot(last_d[1:, np.newaxis], a[np.newaxis, :])
-            last_d = d
+            theta += np.dot(last_d[:, np.newaxis], a[np.newaxis, :])
+            last_d = d[1:]
 
     return thetas
 
@@ -61,10 +60,10 @@ def main():
         theta1, theta2 = weights['Theta1'], weights['Theta2']
         thetas = np.array([theta1, theta2])
 
-        backwards_propagation(thetas, X, Y, 0)
+        thethas = backwards_propagation(thetas, X, Y, 0)
 
-        #prediction = forward_propagation(X, thetas)[-1]
-        #evaluate(prediction, Y)
+        prediction = forward_propagation(X, thetas)[-1]
+        evaluate(prediction, Y)
 
 if __name__ == "__main__":
         main()
