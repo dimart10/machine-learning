@@ -1,104 +1,145 @@
 from  scipy.io import loadmat
+from scipy.optimize import minimize
 import numpy as np
 import matplotlib.pyplot as plt
 
 def forward_propagation(X, thetas):
-        m = X.shape[0]
-        prediction = np.zeros((m, 1))
-
-        # Input layer
-        a = np.hstack([np.ones([m, 1]), X])
-
-        # Neural net parameters storage
-        A = [a]
-        Z = []
-
-        # Hidden layers
-        for i in range(0, len(thetas) - 1):
-                z = np.dot(a, thetas[i].T)
-                a = np.hstack([np.ones([m, 1]), sigmoid(z)])
-                A.append(a)
-                Z.append(z)
-
-        # Output layer
-        z = np.dot(a, thetas[-1].T)
-        Z.append(z)
-        h = sigmoid(z)
-        
-        prediction = np.argmax(h, 1)
-
-        return (A, Z, h, np.reshape(prediction, (5000, 1)))
-
-def backwards_propagation(thetas, X, Y, reg):
     m = X.shape[0]
+    prediction = np.zeros((m, 1))
+
+    # Input layer
+    a = np.hstack([np.ones([m, 1]), X])
+
+    # Neural net parameters storage
+    A = [a]
+    Z = []
+
+    # Hidden layers
+    for i in range(0, len(thetas) - 1):
+            z = np.dot(a, thetas[i].T)
+            a = np.hstack([np.ones([m, 1]), sigmoid(z)])
+            A.append(a)
+            Z.append(z)
+
+    # Output layer
+    z = np.dot(a, thetas[-1].T)
+    Z.append(z)
+    h = sigmoid(z)
+
+    prediction = np.argmax(h, 1)
+
+    return (A, Z, h, np.reshape(prediction, (5000, 1)))
+
+def backwards_propagation(thetasVector, X, Y, layerStructure, num_labels, lamb):
+    m = X.shape[0]
+
+    thetas = unVectorize(thetasVector, layerStructure)
+
     A, Z, h = forward_propagation(X, thetas)[:-1]
 
-    deltas = thetas
+    deltas = []
+    for theta in thetas:
+        deltas.append(np.zeros(theta.shape))
+    deltas = np.array(deltas)
+
     for example in range(m):
         last_d = h[example, :] - Y[example]
         for layer in range(len(A[:-1]), -1, -1):
-            delta = deltas[layer]
-            
-            a = A[layer][example, :]
-            d = np.dot(delta.T, last_d) * (a * (1 - a))
+            theta = thetas[layer]
 
-            delta += np.dot(last_d[:, np.newaxis], a[np.newaxis, :])
+            a = A[layer][example, :]
+            d = np.dot(theta.T, last_d) * (a * (1 - a))
+
+            deltas[layer] += np.dot(last_d[:, np.newaxis], a[np.newaxis, :])
             last_d = d[1:]
 
     gradient = (1 / m) * deltas
-    
-    cost = cost_function(thetas, X, Y, h, 1, 10)
+    gradient += (lamb / m) * deltas # Regularization
+    gradientVector = vectorize(gradient)
 
-    return (cost, gradient)
+    cost = cost_function(thetas, X, Y, h, lamb, num_labels)
 
-def cost_function(thetas, X, Y, h, lamb, num_labels):
-        m = X.shape[0]
+    return (cost, gradientVector)
 
-        y_onehot = np.zeros((m, num_labels))
-        for i in range(m):
-                y_onehot[i][Y[i]] = 1
+def cost_function(thetas, X, Y_onehot, h, lamb, num_labels):
+    m = X.shape[0]
 
-        cost = -y_onehot * np.log(h) - (1 - y_onehot) * np.log(1 - h)
-        cost = 1/m * cost.sum()
+    cost = (-Y_onehot * np.log(h)) - ((1 - Y_onehot) * np.log(1 - h))
+    cost = 1/m * cost.sum()
 
-        # Regularization
-        for theta in thetas:
-                cost += (lamb / (2 * m)) * (theta**2).sum()
+    # Regularization
+    for theta in thetas:
+            cost += (lamb / (2 * m)) * (theta**2).sum()
 
-        return cost
+    return cost
 
 def sigmoid(Z):
     return 1/(1 + np.e**(-Z))
 
 def derivative_sigmoid(Z):
-        sig = sigmoid(Z)
-        return sig * (1 - sig)
+    sig = sigmoid(Z)
+    return sig * (1 - sig)
 
 def random_weights(L_in, L_out, init_range):
-        return np.random.rand(L_in, L_out) * (init_range*2) - init_range
+    return np.random.rand(L_in, L_out) * (init_range*2) - init_range
 
 def evaluate(prediction, realY):
-        m = prediction.shape[0]
+    m = prediction.shape[0]
 
-        print("Precision", ((prediction+1 == realY).sum()/m)*100, "%")
+    print("Precision", ((prediction == realY).sum()/m)*100, "%")
+
+
+def vectorize(npArray):
+    vec = np.empty((0))
+    for arrayElement in npArray:
+        vec = np.concatenate((vec, np.ravel(arrayElement)))
+
+    return vec
+
+def unVectorize(vector, layerStructure):
+    temp = []
+    last_index = 0
+    for i in range(len(layerStructure) - 1):
+        layerSize = layerStructure[i] + 1
+        nextLayerSize = layerStructure[i + 1]
+        totalSize = layerSize * nextLayerSize
+        temp.append(np.reshape(vector[last_index:last_index+totalSize],(nextLayerSize, layerSize)))
+        last_index = totalSize
+
+    return np.array(temp)
+
+def trainNeuralNetwork(path, layerStructure, num_labels, lamb):
+    #weights = loadmat("../data/ex4weights.mat")
+    data = loadmat(path)
+
+    X, Y = data['X'], data['y']
+    Y = Y-1
+
+    # Number of examples
+    m = X.shape[0]
+
+    Y_onehot = np.zeros((m, num_labels))
+    for i in range(m):
+            Y_onehot[i][Y[i]] = 1
+
+    thetas = []
+    for i in range(len(layerStructure)-1):
+        thetas.append(random_weights(layerStructure[i+1], layerStructure[i]+1, 0.12))
+    thetasVector = vectorize(thetas)
+
+    fmin = minimize(fun = backwards_propagation, x0 = thetasVector,
+                    args = (X, Y_onehot, layerStructure, num_labels, lamb), method = 'TNC',
+                    jac = True, options = {'maxiter': 70})
+
+    thetas = unVectorize(fmin['x'], layerStructure)
+
+    forward_prop = forward_propagation(X, thetas)
+    print("Cost: ", fmin['fun'])
+
+    evaluate(forward_prop[-1], Y)
 
 def main():
-        #weights = loadmat("../data/ex4weights.mat")
-        data = loadmat ("../data/ex4data1.mat")
-
-        X, Y = data['X'], data['y']
-        Y = Y-1
-
-        theta1 = random_weights(25, 401, 0.12)
-        theta2 = random_weights(10, 26, 0.12)
-
-        thetas = np.array([theta1, theta2])
-
-        backs_results = backwards_propagation(thetas, X, Y, 0)
-
-        forward_prop = forward_propagation(X, thetas)
-        print("Cost: ", backs_results[0])
-        evaluate(forward_prop[-1], Y)
+    trainNeuralNetwork("../data/ex4data1.mat", (400, 25, 10), 10, 1)
 
 if __name__ == "__main__":
         main()
