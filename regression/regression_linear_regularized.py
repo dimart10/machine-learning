@@ -36,42 +36,45 @@ def regression(thetasVector, X_poly, Y, lamb):
 def h(thetas, X):
     return np.dot(X, thetas)
 
-def generate_plot(X, Y, prediction):
-    order = np.ravel(np.argsort(X, 0))
+def generate_plot(X, Y, X_toPredict, Y_predicted):
+    order = np.ravel(np.argsort(X_toPredict, 0))
 
-    X = X[order, :]
-    Y = Y[order, :]
-    prediction = prediction[order, :]
+    X_toPredict_ordered = X_toPredict[order, :]
+    Y_predicted_ordered = Y_predicted[order, :]
 
     plt.figure()
     plt.scatter(X, Y[:,0], c='red')
-    plt.plot(X, prediction, c='blue')
+    plt.plot(X_toPredict_ordered, Y_predicted_ordered, c='blue')
     plt.savefig('images/regression_lineal_regularized_results.png')
     plt.show()
     plt.close()
 
-def getXPoly(X, degree, normalizeValues=True):
+def getXPoly(X, degree, normalizeValues=True, mean=np.array([]), deviation=np.array([])):
     m = np.shape(X)[0]
 
     poly = PolynomialFeatures(degree)
     X_poly = poly.fit_transform(X)
 
-    if (normalizeValues): X_poly = normalize(X_poly[:,1:])[0]
+    if (normalizeValues):
+        normalization_results = normalize(X_poly[:,1:], mean, deviation)
+        X_poly = normalization_results[0]
+        mean = normalization_results[1]
+        deviation = normalization_results[2]
 
     X_poly = np.hstack([np.ones([m, 1]), X_poly])
 
-    return X_poly
+    return X_poly, mean, deviation
 
-def normalize(X):
-    mean = np.mean(X, 0)
-    deviation = np.std(X, 0)
+def normalize(X, mean=np.array([]), deviation=np.array([])):
+    if (mean.size == 0): mean = np.mean(X, 0)
+    if (deviation.size == 0): deviation = np.std(X, 0)
 
     normalized = (X-mean)/deviation
 
     return (normalized, mean, deviation)
 
-def testModel(thetas, X, Y, degree, lamb, genPlot=False, normalize_X=True):
-    X_poly = getXPoly(X, degree, normalize_X)
+def testModel(thetas, X, Y, degree, lamb, genPlot=False, normalize_X=True, mean=np.array([]), deviation=np.array([])):
+    X_poly = getXPoly(X, degree, normalize_X, mean, deviation)[0]
 
     # Test the model
     c = cost(thetas, X_poly, Y, lamb)
@@ -81,7 +84,11 @@ def testModel(thetas, X, Y, degree, lamb, genPlot=False, normalize_X=True):
     print("Cost: ", c)
     print("Gradient: ", grad)
 
-    if (genPlot): generate_plot(X, Y, h(thetas, X_poly))
+    if (genPlot):
+        X_plot = np.arange(X.min(), X.max(), 0.05)[:, np.newaxis]
+        print(X_plot)
+        X_plot_poly = getXPoly(X_plot, degree, normalize_X, mean, deviation)[0]
+        generate_plot(X, Y, X_plot, h(thetas, X_plot_poly))
 
     return (c, grad)
 
@@ -93,8 +100,11 @@ def crossValidation_plot(trainingGroups, group_costs, crossValidation_costs):
     plt.show()
     plt.close()
 
-def train(X, Y, degree=1, lamb=1, testModel=False, thetas=np.array([]), normalize_X=True):
-    X_poly = getXPoly(X, degree, normalize_X)
+def train(X, Y, degree=1, lamb=1, thetas=np.array([]), normalize_X=True, mean=np.array([]), deviation=np.array([])):
+    X_poly_results = getXPoly(X, degree, normalize_X)
+    X_poly = X_poly_results[0]
+    if (mean.size == 0): mean = X_poly_results[1]
+    if (deviation.size == 0): deviation = X_poly_results[2]
 
     m = np.shape(X_poly)[0]
     n = np.shape(X_poly)[1]
@@ -108,13 +118,15 @@ def train(X, Y, degree=1, lamb=1, testModel=False, thetas=np.array([]), normaliz
 
     thetas = np.reshape(results['x'], (X_poly.shape[1], 1))
 
-    if (testModel): testModel(thetas, X_poly, Y, lamb)
+    return thetas, X_poly, mean, deviation
 
-    return thetas, X_poly
-
-def train_crossValidation(k, X, Y, X_val, Y_val, degree=1, lamb=1, testModel=False, normalize_X=True):
+def train_crossValidation(k, X, Y, X_val, Y_val, degree=1, lamb=1, normalize_X=True):
     m = np.shape(X)[0]
-    X_val_poly = getXPoly(X_val, degree, normalize_X)
+
+    X_poly_results = getXPoly(X, degree, normalize_X)
+    mean = X_poly_results[1]
+    deviation = X_poly_results[2]
+    X_val_poly = getXPoly(X_val, degree, normalize_X, mean, deviation)[0]
 
     if (k >= m):
         print("Error: k should be lower than the total number of training examples.")
@@ -131,7 +143,8 @@ def train_crossValidation(k, X, Y, X_val, Y_val, degree=1, lamb=1, testModel=Fal
         X_group = X[0:lastIndex]
         Y_group = Y[0:lastIndex]
 
-        group_results = train(X_group, Y_group, lamb = lamb, thetas = thetas, normalize_X=normalize_X)
+        group_results = train(X_group, Y_group, degree, lamb, thetas,
+                                normalize_X, mean, deviation)
 
         thetas = group_results[0]
         group_cost = cost(thetas, group_results[1], Y_group, lamb)
@@ -144,7 +157,29 @@ def train_crossValidation(k, X, Y, X_val, Y_val, degree=1, lamb=1, testModel=Fal
 
     crossValidation_plot(trainingGroups, group_costs, crossValidation_costs)
 
-    return thetas
+    return thetas, X_poly_results[0], mean, deviation
+
+def train_lamba_selector(X, Y, X_val, Y_val, degree=1, lambs=(0, 1), normalize_X=True, showResults=True):
+    X_poly_results = getXPoly(X, degree, normalize_X)
+    mean = X_poly_results[1]
+    deviation = X_poly_results[2]
+    X_val_poly = getXPoly(X_val, degree, normalize_X, mean, deviation)[0]
+
+    bestLambda = 0
+    bestCost = -1
+    for lamb in lambs:
+        trainingResult = train(X, Y, degree=degree, lamb=lamb)
+        currentCost = cost(trainingResult[0], X_val_poly, Y_val, lamb)
+
+        if (bestCost == -1 or currentCost < bestCost):
+            bestLambda = lamb
+            bestCost = currentCost
+            thetas = trainingResult[0]
+
+    if (showResults):
+        print("Best lambda|cost: ", bestLambda, "|", bestCost)
+
+    return thetas, bestLambda, bestCost, X_poly_results[0], mean, deviation
 
 def main():
     # DATA PREPROCESSING
@@ -154,16 +189,19 @@ def main():
     X_test, Y_test = data['Xtest'], data['ytest']
 
     degree = 8
-    lamb = 0
+    lamb = 3
+    lambs = (0, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10)
+    k = 1
 
     # Model training
-    #thetas = train_crossValidation(1, X, Y, X_val, Y_val, lamb=0)
+    #trainingResult = train(X, Y, degree=degree, lamb=lamb)
+    #trainingResult = train_crossValidation(k, X, Y, X_val, Y_val, degree, lamb)
+    trainingResult = train_lamba_selector(X, Y, X_val, Y_val, degree, lambs)
 
-    trainingResult = train(X, Y, degree=degree, lamb=lamb)
     thetas = trainingResult[0]
 
     # Model testing
-    testModel(thetas, X, Y, degree, lamb, True)
+    testModel(thetas, X_test, Y_test, degree, lamb, True, True, trainingResult[-2], trainingResult[-1])
 
 if __name__ == "__main__":
     main()
