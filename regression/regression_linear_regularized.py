@@ -189,7 +189,7 @@ def main():
     X_test, Y_test = data['Xtest'], data['ytest']
 
     degree = 8
-    lamb = 3
+    lamb = 0
     lambs = (0, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10)
     k = 1
 
