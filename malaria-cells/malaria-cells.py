@@ -1,12 +1,50 @@
 import argparse
+import os
+
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.image import imread
 import pandas
+
+PARASITIZED_PATH = "../data/heavy/malaria-cells/Parasitized/"
+UNINFECTED_PATH = "../data/heavy/malaria-cells/Uninfected/"
+
+FILE_EXTENSION = "png"
+
+TRAINING_BATCH = 15000
+VAL_BATCH = 5000
+TEST_BATCH = 7000
 
 # DATA LOADING & PREPARATION
 def loadData():
     print("\nLoading data...")
-    return True
+
+    if (not os.path.isdir(PARASITIZED_PATH) or not os.path.isdir(UNINFECTED_PATH)):
+        print("\nData directories don't exist, please read the README.md of this folder"
+                + "to learn how to download and setup the data\n")
+        return False
+
+    parasitized_filenames = [f for f in os.listdir(PARASITIZED_PATH) if f.endswith('.' + FILE_EXTENSION)]
+    uninfected_filenames = [f for f in os.listdir(UNINFECTED_PATH) if f.endswith('.' + FILE_EXTENSION)]
+
+    if (len(parasitized_filenames) <= 0 or len(uninfected_filenames) <= 0):
+        print("\nData is missing or missplaced, please read the README.md of this folder"
+                + "to learn how to download and setup the data")
+        return False
+
+    # Load every image as a 1D array
+    parasitized = []
+    for filename in parasitized_filenames:
+        parasitized.append(imread(PARASITIZED_PATH + filename).ravel())
+        parasitized[-1].ravel()
+    parasitized = np.array(parasitized)
+
+    uninfected = []
+    for filename in uninfected_filenames:
+        uninfected.append(imread(UNINFECTED_PATH + filename).ravel())
+    uninfected = np.array(uninfected)
+
+    return (True, parasitized, uninfected)
 
 # LOGISTIC REGRESSION
 def logisticRegression(verbose, hideOutput, dontSave):
@@ -32,7 +70,7 @@ def main():
     runAll = True
 
     # Data must always be loaded
-    if (not loadData()):
+    if (not loadData()[0]):
         return
 
     # Conditional execution depending on console arguments
