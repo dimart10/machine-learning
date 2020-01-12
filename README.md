@@ -8,7 +8,7 @@ Keep reading if you want to know how to run any of the scripts.
 
 - Any Python 3.X installation (*virtualenv* can come in handy to avoid messing with your OS packages).
 - Python 3 standard libraries. It depends on the script you want to execute, but generally you'd want to have at least `numpy`, `matplotlib`, `pandas` and `scipy`.
-- More advanced scripts may also use `scikit-learn` and `keras`.
+- More advanced scripts may also use `scikit-learn` and `opencv`.
 
 ### Installing
 
@@ -29,8 +29,7 @@ not the problem, please [open an issue or submit a pull request with the fix](#c
 * [Matplotlib](https://matplotlib.org/)
 * [Pandas](https://pandas.pydata.org/)
 * [Scikit Learn](https://scikit-learn.org/stable/)
-* [Keras](https://keras.io/)
-
+* [OpenCV](https://opencv.org/)
 * [Kaggle](https://www.kaggle.com/) (for datasets)
 
 ## Contributing
