@@ -1,11 +1,18 @@
-import argparse
 import os
+import sys
+import argparse
 
 import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
 import cv2
 import pandas
+import scipy.optimize as opt
+
+
+# Custom algorithms
+sys.path.append('../')
+import regression.regresion_logistic as LogisticReg
 
 DATA_PATH = "../data/heavy/malaria-cells/"
 PARASITIZED_FOLDER = "Parasitized/"
@@ -27,7 +34,7 @@ TRAINING_BATCH = 15000
 VAL_BATCH = 5000
 TEST_BATCH = 7000
 
-# DATA LOADING & PREPARATION
+# Load & preprocess data
 def loadData(cache = True):
     print("\nLoading data...")
 
@@ -37,7 +44,7 @@ def loadData(cache = True):
         print("Image data is being loaded from cache")
         parasitized = np.load(CACHE_PATH + PARASITIZED_CACHE_FILE + CACHE_EXTENSION)
         uninfected = np.load(CACHE_PATH + UNINFECTED_CACHE_FILE + CACHE_EXTENSION)
-        return(True, parasitized, uninfected)
+        return(True, formatData(parasitized, uninfected))
 
     # Check if the folders exists and contain the data
     if (not os.path.isdir(PARASITIZED_PATH) or not os.path.isdir(UNINFECTED_PATH)):
@@ -74,16 +81,41 @@ def loadData(cache = True):
         np.save(CACHE_PATH + PARASITIZED_CACHE_FILE, parasitized)
         np.save(CACHE_PATH + UNINFECTED_CACHE_FILE, uninfected)
 
-    return (True, parasitized, uninfected)
+    return (True, formatData(parasitized, uninfected))
 
-# LOGISTIC REGRESSION
-def logisticRegression(verbose, hideOutput, dontSave):
+# Returns the data loaded from disk in the standard format
+def formatData(parasitized, uninfected):
+    n = parasitized.shape[1]
+
+    formatted = np.vstack((np.insert(parasitized, n, 1, 1),
+                            np.insert(uninfected, n, 0, 1)))
+    return formatted
+
+# Logistic regression algorithm
+def logisticRegression(data, verbose, hideOutput, dontSave):
+    X = data[:, :-1]
+    Y = data[:, -1][np.newaxis].T
+
+    m = np.shape(X)[0]
+    X = np.hstack([np.ones([m, 1]), X])
+    n = np.shape(X)[1]
+
+    thetas = np.zeros((n, 1), dtype=float)
+
+    result = opt.fmin_tnc(func=LogisticReg.cost, x0=thetas, fprime=LogisticReg.gradient, args=(X, Y))
+    thetas = result[0]
+
+    print("Error percentage: ", LogisticReg.evaluate(thetas, X, Y)*100, "%")
+
     print("\n*** Running logistic regression ***\n")
 
-def runAllAlgorithms(verbose, hideOutput, dontSave):
+#
+def runAllAlgorithms(data, verbose, hideOutput, dontSave):
     print("""
 *** Running all algorithms ***
 Depending on your machine specs, this may take some time\n""")
+
+    logisticRegression(data, verbose, hideOutput, dontSave)
 
 # MAIN FUNCTION
 def main():
@@ -101,16 +133,18 @@ def main():
     runAll = True
 
     # Data must always be loaded
-    if (not loadData(not args.noCache)[0]):
+    loadResult = loadData(not args.noCache)
+    if (not loadResult[0]):
         return
+    data = loadResult[1]
 
     # Conditional execution depending on console arguments
     if (args.logisticRegression):
-        logisticRegression(args.verbose, args.hideOutput, args.dontSave)
+        logisticRegression(data, args.verbose, args.hideOutput, args.dontSave)
         runAll = False;
 
     if (runAll):
-        runAllAlgorithms(args.verbose, args.hideOutput, args.dontSave)
+        runAllAlgorithms(data, args.verbose, args.hideOutput, args.dontSave)
 
 if __name__ == "__main__":
     main()
