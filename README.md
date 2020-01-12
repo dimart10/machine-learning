@@ -21,6 +21,20 @@ Once you have your prerequisites installed:
 If you run into any trouble, check you have installed all the packages included in the script. If that's
 not the problem, please [open an issue or submit a pull request with the fix](#contributing).
 
+### Data format
+
+Every algorithm has its own main function with an example data-set & its
+training/evaluation. But if you want, you can use your own data. To do so, you
+must know that the `train()` function will always receive a numpy array
+containing 1 row for each example, each of its columns representing one of its
+attributes; except the last one, which is an integer indicating the
+classification group it belongs to.
+
+For example, if you are classifying fruit images you can use 0 to represent apple,
+1 for banana and 2 for pear. Also, each row would contain the [flattened] information
+of each one of the data-set images.
+
+
 ## Built With
 
 * [Python 3](https://www.python.org/downloads/)

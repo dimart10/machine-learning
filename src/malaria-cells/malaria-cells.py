@@ -1,20 +1,22 @@
 import os
-import sys
 import argparse
+import sys
+sys.path.append('../')
+sys.path.append('../../utils')
 
 import numpy as np
-from PIL import Image
 import matplotlib.pyplot as plt
 import cv2
 import pandas
 import scipy.optimize as opt
+import data_preprocessing as Preprocessing
+from PIL import Image
 
 
 # Custom algorithms
-sys.path.append('../')
 import regression.regresion_logistic as LogisticReg
 
-DATA_PATH = "../data/heavy/malaria-cells/"
+DATA_PATH = "../../data/heavy/malaria-cells/"
 PARASITIZED_FOLDER = "Parasitized/"
 UNINFECTED_FOLDER = "Uninfected/"
 CACHE_FOLDER = ".cache/"
@@ -89,21 +91,15 @@ def formatData(parasitized, uninfected):
 
     formatted = np.vstack((np.insert(parasitized, n, 1, 1),
                             np.insert(uninfected, n, 0, 1)))
+    formatted = Preprocessing.separate_data(formatted)
+
     return formatted
 
 # Logistic regression algorithm
 def logisticRegression(data, verbose, hideOutput, dontSave):
-    X = data[:, :-1]
-    Y = data[:, -1][np.newaxis].T
+    print("\n*** Running logistic regression algorithm ***\n")
 
-    m = np.shape(X)[0]
-    X = np.hstack([np.ones([m, 1]), X])
-    n = np.shape(X)[1]
-
-    thetas = np.zeros((n, 1), dtype=float)
-
-    result = opt.fmin_tnc(func=LogisticReg.cost, x0=thetas, fprime=LogisticReg.gradient, args=(X, Y))
-    thetas = result[0]
+    LogisticReg.train(data[0], data[1])
 
     print("Error percentage: ", LogisticReg.evaluate(thetas, X, Y)*100, "%")
 

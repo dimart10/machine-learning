@@ -1,7 +1,12 @@
+import sys
+sys.path.append('../../utils')
+
 import numpy as np
 import matplotlib.pyplot as plt
-from pandas.io.parsers import read_csv
 import scipy.optimize as opt
+import data_preprocessing as Preprocessing
+from pandas.io.parsers import read_csv
+
 
 def load_csv(file_name):
     values = read_csv(file_name, header=None).values
@@ -34,7 +39,7 @@ def show_border(thetas, X, Y):
 
     xx1, xx2 = np.meshgrid(np.linspace(x1_min, x1_max),
     np.linspace(x2_min, x2_max))
-    
+
     H = sigmoid(np.c_[np.ones((xx1.ravel().shape[0], 1)),
     xx1.ravel(),
     xx2.ravel()].dot(thetas))
@@ -62,20 +67,18 @@ def evaluate(thetas, X, Y):
 
     return errors/(result.shape[0])
 
-def main():
-    # DATA PREPROCESSING
-    datos = load_csv("data/ex2data1.csv")
-    X = datos[:, :-1]
-    Y = datos[:, -1][np.newaxis].T
-
-    m = np.shape(X)[0]
-    X = np.hstack([np.ones([m, 1]), X])
-    n = np.shape(X)[1]
-
-    thetas = np.zeros((n, 1), dtype=float)
-
+def train(X, Y):
+    thetas = np.zeros((X.shape[1], 1), dtype=float)
     result = opt.fmin_tnc(func=cost, x0=thetas, fprime=gradient, args=(X, Y))
     thetas = result[0]
+
+    return thetas
+
+def main():
+    # DATA PREPROCESSING
+    data = load_csv("data/ex2data1.csv")
+    X, Y, m, n = Preprocessing.separate_data(data)
+    thetas = train(X, Y)
 
     print("Error percentage: ", evaluate(thetas, X, Y)*100, "%")
     show_border(thetas, X, Y)
