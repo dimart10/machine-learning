@@ -83,10 +83,11 @@ def derivative_sigmoid(Z):
 def random_weights(L_in, L_out, init_range):
     return np.random.rand(L_in, L_out) * (init_range*2) - init_range
 
-def evaluate(prediction, realY):
+def evaluate(thetas, X, Y):
+    prediction = forward_propagation(X, thetas)[-1]
     m = prediction.shape[0]
 
-    print("Precision", ((prediction == realY).sum()/m)*100, "%")
+    print("Precision:", ((prediction == Y).sum()/m)*100, "%")
 
 
 def vectorize(npArray):
@@ -108,13 +109,7 @@ def unVectorize(vector, layerStructure):
 
     return np.array(temp)
 
-def trainNeuralNetwork(path, layerStructure, num_labels, lamb):
-    #weights = loadmat("../data/ex4weights.mat")
-    data = loadmat(path)
-
-    X, Y = data['X'], data['y']
-    Y = Y-1
-
+def train(X, Y, layerStructure, num_labels, lamb):
     # Number of examples
     m = X.shape[0]
 
@@ -132,14 +127,15 @@ def trainNeuralNetwork(path, layerStructure, num_labels, lamb):
                     jac = True, options = {'maxiter': 70})
 
     thetas = unVectorize(fmin['x'], layerStructure)
-
-    forward_prop = forward_propagation(X, thetas)
-    print("Cost: ", fmin['fun'])
-
-    evaluate(forward_prop[-1], Y)
+    return thetas
 
 def main():
-    trainNeuralNetwork("../data/ex4data1.mat", (400, 25, 10), 10, 1)
+    data = loadmat("../../data/ex4data1.mat")
+    X, Y = data['X'], data['y']
+    Y = Y-1
+
+    thetas = train(X, Y, (400, 25, 10), 10, 1)
+    evaluate(thetas, X, Y)
 
 if __name__ == "__main__":
         main()
