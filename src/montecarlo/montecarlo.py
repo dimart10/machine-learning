@@ -1,15 +1,16 @@
-# Diego Martínez Simarro y Sergio Abreu García
+# This script uses the Montecarlo method to find the
+# [approximated] area under a curve (definite integral)
 
 import math
 import random
-import scipy.integrate as integrate
-import numpy as np
 import time
+
+import numpy as np
+import scipy.integrate as integrate
 import matplotlib.pyplot as plt
 
-def integra_mc_iterativa(fun, a, b, num_puntos=1000):
-
-    #VARIABLE PARA CONTROLAR EL TIEMPO
+def montecarlo_iterative_integration(fun, a, b, num_puntos=1000):
+    # To keep track of time
     tic = time.time()
 
     #HALLAMOS M
@@ -18,8 +19,8 @@ def integra_mc_iterativa(fun, a, b, num_puntos=1000):
         aux = fun(i)
         if aux > M :
             M = aux
-    print("\n__Integral iterativa__")
-    print("Máximo: ", M)
+    print("\n__Integral (iterative)__")
+    print("Máximum: ", M)
 
     #QUEDA DEFINIDO EL CUADRADO ENTRE A-B Y 0-M
     #LANZAMOS PUNTOS ALEATORIOS DENTRO DEL CUADRADO
@@ -33,65 +34,66 @@ def integra_mc_iterativa(fun, a, b, num_puntos=1000):
         if fun(x)>y :
             nDebajo+=1
 
-    print("N Debajo: ", nDebajo)
-    print("N Totales: ", num_puntos)
+    print("Points under curve: ", nDebajo)
+    print("Total points: ", num_puntos)
 
     I = (nDebajo/num_puntos)*(b-a)*M
-    print ("I montecarlo: ", I)
+    print ("Montecarlo integral: ", I)
 
     toc = time.time()
-    print("Tiempo: ", 1000*(toc - tic))
+    print("time: ", 1000*(toc - tic))
 
     return 1000*(toc - tic)
 
-def integra_mc_vectores(fun, a, b, num_puntos=1000):
-    
-    #VARIABLE PARA CONTROLAR EL TIEMPO
+def montecarlo_vectorized_integration(fun, a, b, num_puntos=1000):
+    # To keep track of time
     tic = time.time()
 
-    #CREAMOS VECTORES CON PUNTOS
+    # Vectors with uniformly distributed points
     vectorX = np.random.uniform(low = a, high = b, size =(num_puntos))
 
-    #HALLAMOS M
     vectorizedFun = np.vectorize(fun)
     funResults = vectorizedFun(vectorX)
     M = funResults.max()
     vectorY = np.random.uniform(low = 0, high = M, size =(num_puntos))
 
-    print("\n__Integral vectorial__")
-    print("Máximo: ", M)
+    print("\n__Integral (vectorized)__")
+    print("Máximum: ", M)
 
-    #CONTAMOS LOS PUNTOS DEBAJO
+    # Points under the curve
     nDebajo = np.greater(funResults, vectorY).sum()
 
-    print("N Debajo: ", nDebajo)
-    print("N Totales: ", num_puntos)
+    print("Points under curve: ", nDebajo)
+    print("Total points: ", num_puntos)
 
-    #HALLAMOS I CON LOS DATOS OBTENIDOS
+    # Value of the integral (Montecarlo approximation)
     I = (nDebajo/num_puntos)*(b-a)*M
-    print ("I montecarlo: ", I)
+    print ("Montecarlo integral: ", I)
 
     toc = time.time()
-    print("Tiempo: ", 1000*(toc - tic))
+    print("Time: ", 1000*(toc - tic))
 
     return 1000*(toc - tic)
 
-#LLAMAMOS VARIAS VECES A AMBAS FUNCIONES Y RELLENAMOS UNA GRAFICA CON SUS TIEMPOS
+
 iterativeArray = []
-vectorialArray = []
+vectorizedArray = []
 iValues = []
 
+# Compare both methods (iterative and vectorized) performance when using
+# increasingly larger number of points
 for i in range(1, 1000000, 100000):
-    iterativeArray.append(integra_mc_iterativa(math.sin, 0, math.pi, i))
-    vectorialArray.append(integra_mc_vectores(math.sin, 0, math.pi, i))
+    iterativeArray.append(montecarlo_iterative_integration(math.sin, 0, math.pi, i))
+    vectorizedArray.append(montecarlo_vectorized_integration(math.sin, 0, math.pi, i))
     iValues.append(i)
 
+# Show and save the results
 plt.figure()
 plt.scatter(iValues, iterativeArray, color='red', label="Iterative")
-plt.scatter(iValues, vectorialArray, color='blue', label="Recursive")
+plt.scatter(iValues, vectorizedArray, color='blue', label="Vectorized")
 plt.ylabel('Time comparison')
 plt.legend()
-plt.savefig("Grafica.png")
+plt.savefig("time_comparison.png")
 plt.show()
 
-print("\nI real: ", integrate.quad(math.sin, 0, math.pi)[0], "\n")
+print("\nReal integral value: ", integrate.quad(math.sin, 0, math.pi)[0], "\n")

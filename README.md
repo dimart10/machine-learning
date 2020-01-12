@@ -8,7 +8,7 @@ Keep reading if you want to know how to run any of the scripts.
 
 - Any Python 3.X installation (*virtualenv* can come in handy to avoid messing with your OS packages).
 - Python 3 standard libraries. It depends on the script you want to execute, but generally you'd want to have at least `numpy`, `matplotlib`, `pandas` and `scipy`.
-- More advanced scripts may also use `scikit-learn` and `opencv`.
+- More advanced scripts may also use `scikit-learn`, `opencv` & `pillow`.
 
 ### Installing
 
@@ -25,10 +25,11 @@ not the problem, please [open an issue or submit a pull request with the fix](#c
 
 Every algorithm has its own main function with an example data-set & its
 training/evaluation. But if you want, you can use your own data. To do so, you
-must know that the `train()` function will always receive a numpy array
-containing 1 row for each example, each of its columns representing one of its
-attributes; except the last one, which is an integer indicating the
-classification group it belongs to.
+must know that the `train()` function will always receive at least two numpy arrays:
+first (*X*) a 2D matrix with 1 row for each training example, with each column representing
+each of its attributes; and second (*Y*) a vector (one dimensional array) with the
+index of the classification group each example belongs to. If yours is not a classification
+problem, then it's just the real output value of each training example.
 
 For example, if you are classifying fruit images you can use 0 to represent apple,
 1 for banana and 2 for pear. Also, each row would contain the [flattened] information
@@ -44,6 +45,7 @@ of each one of the data-set images.
 * [Pandas](https://pandas.pydata.org/)
 * [Scikit Learn](https://scikit-learn.org/stable/)
 * [OpenCV](https://opencv.org/)
+* [Pillow](https://pillow.readthedocs.io/en/stable/)
 * [Kaggle](https://www.kaggle.com/) (for datasets)
 
 ## Contributing

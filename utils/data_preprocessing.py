@@ -12,3 +12,4 @@ def separate_data(data, addInitialOnes = True):
     n = np.shape(X)[1]
 
     return (X, Y, m, n)
+    

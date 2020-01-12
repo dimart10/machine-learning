@@ -127,6 +127,7 @@ def train(X, Y, layerStructure, num_labels, lamb):
                     jac = True, options = {'maxiter': 70})
 
     thetas = unVectorize(fmin['x'], layerStructure)
+
     return thetas
 
 def main():
