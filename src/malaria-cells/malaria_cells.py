@@ -12,9 +12,10 @@ import scipy.optimize as opt
 import data_preprocessing as Preprocessing
 from PIL import Image
 
-
 # Custom algorithms
 import regression.regresion_logistic as LogisticReg
+import neural_networks.neural_network as NeuralNetwork
+
 
 DATA_PATH = "../../data/heavy/malaria-cells/"
 PARASITIZED_FOLDER = "Parasitized/"
@@ -95,23 +96,29 @@ def formatData(parasitized, uninfected):
 
     return formatted
 
-# Logistic regression algorithm
 def logisticRegression(data, verbose, hideOutput, dontSave):
     print("\n*** Running logistic regression algorithm ***\n")
+    LogisticReg.train(Preprocessing.addInitialOnes(data[0]), data[1])
 
-    LogisticReg.train(data[0], data[1])
+    if (not hideOutput):
+        print("Error percentage: ", LogisticReg.evaluate(thetas, X, Y)*100, "%")
 
-    print("Error percentage: ", LogisticReg.evaluate(thetas, X, Y)*100, "%")
+def neuralNetwork(data, verbose, hideOutput, dontSave):
+    print("\n*** Running neural network ***\n")
+    NeuralNetwork.train(data[0], data[1], (19200, 2000, 2), 2, 1)
 
-    print("\n*** Running logistic regression ***\n")
+    if (not hideOutput):
+        print("Error percentage: ", NeuralNetwork.evaluate(thetas, X, Y)*100, "%")
 
-#
+
+# Run all algorithms in sequence
 def runAllAlgorithms(data, verbose, hideOutput, dontSave):
     print("""
 *** Running all algorithms ***
 Depending on your machine specs, this may take some time\n""")
 
     logisticRegression(data, verbose, hideOutput, dontSave)
+    neuralNetwork(data, verbose, hideOutput, dontSave)
 
 # MAIN FUNCTION
 def main():
@@ -124,6 +131,7 @@ def main():
     parser.add_argument('--dontSave', '-d', help='Do not save to disk result graphs & statistics for the executed algorithms', action="store_true")
     parser.add_argument('--noCache', '-c', help='Do not load cached data and do not cache generated data', action="store_true")
     parser.add_argument('--logisticRegression', '-l', help='Execute the logistic regression algorithm', action="store_true")
+    parser.add_argument('--neuralNetwork', '-n', help='Execute the neural network algorithm', action="store_true")
 
     args = parser.parse_args()
     runAll = True
@@ -137,6 +145,10 @@ def main():
     # Conditional execution depending on console arguments
     if (args.logisticRegression):
         logisticRegression(data, args.verbose, args.hideOutput, args.dontSave)
+        runAll = False;
+
+    if (args.neuralNetwork):
+        neuralNetwork(data, args.verbose, args.hideOutput, args.dontSave)
         runAll = False;
 
     if (runAll):

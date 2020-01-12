@@ -87,7 +87,7 @@ def evaluate(thetas, X, Y):
     prediction = forward_propagation(X, thetas)[-1]
     m = prediction.shape[0]
 
-    print("Precision:", ((prediction == Y).sum()/m)*100, "%")
+    return ((prediction == Y).sum()/m)
 
 
 def vectorize(npArray):
@@ -136,7 +136,7 @@ def main():
     Y = Y-1
 
     thetas = train(X, Y, (400, 25, 10), 10, 1)
-    evaluate(thetas, X, Y)
+    print("Precision:", evaluate(thetas, X, Y)*100, "%")
 
 if __name__ == "__main__":
         main()
