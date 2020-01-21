@@ -68,8 +68,9 @@ def evaluate(thetas, X, Y):
     return errors/(result.shape[0])
 
 def train(X, Y):
-    thetas = np.zeros((X.shape[1], 1), dtype=float)
-    result = opt.fmin_tnc(func=cost, x0=thetas, fprime=gradient, args=(X, Y))
+    XOnes = Preprocessing.addInitialOnes(X)
+    thetas = np.zeros((XOnes.shape[1], 1), dtype=float)
+    result = opt.fmin_tnc(func=cost, x0=thetas, fprime=gradient, args=(XOnes, Y))
     thetas = result[0]
 
     return thetas

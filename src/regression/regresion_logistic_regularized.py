@@ -54,8 +54,11 @@ def show_decision_boundary(thetas, X, Y, poly):
     plt.show()
     plt.close()
 
-def evaluate(thetas, X, Y):
-    result = h(thetas, X)
+def evaluate(thetas, X, Y, degree):
+    poly = PolynomialFeatures(degree)
+    X_poly = poly.fit_transform(X)
+
+    result = h(thetas, X_poly)
     passed_missed = np.logical_and((result >= 0.5), (Y == 0)).sum()
     failed_missed = np.logical_and((result < 0.5), (Y == 1)).sum()
 
@@ -63,7 +66,7 @@ def evaluate(thetas, X, Y):
 
     return errors/(result.shape[0])
 
-def train(X, Y, degree=6, lamb=1, evaluateResults=True):
+def train(X, Y, degree=2, lamb=1):
     poly = PolynomialFeatures(degree)
     X_poly = poly.fit_transform(X)
 
@@ -71,14 +74,10 @@ def train(X, Y, degree=6, lamb=1, evaluateResults=True):
     n = np.shape(X_poly)[1]
 
     thetas = np.zeros((n, 1), dtype=float)
-    result = opt.fmin_tnc(func=cost, x0=thetas, fprime=gradient, args=(X_poly, Y, lamb), messages=False)
+    result = opt.fmin_tnc(func=cost, x0=thetas, fprime=gradient, args=(X_poly, Y, lamb), messages=True)
     thetas = result[0]
 
-    if (evaluateResults):
-        print("Error percentage: ", evaluate(thetas, X_poly, Y)*100, "%")
-        show_decision_boundary(thetas, X, Y, poly)
-
-    return X_poly, thetas
+    return thetas
 
 def main():
     # DATA PREPROCESSING
@@ -86,7 +85,10 @@ def main():
     X = datos[:, :-1]
     Y = datos[:, -1][np.newaxis].T
 
-    train(X, Y)
+    thetas = train(X, Y)
+
+    print("Error percentage: ", evaluate(thetas, X, Y, 2)*100, "%")
+    show_decision_boundary(thetas, X, Y, poly)
 
 
 if __name__ == "__main__":

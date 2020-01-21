@@ -28,7 +28,7 @@ def forward_propagation(X, thetas):
 
     prediction = np.argmax(h, 1)
 
-    return (A, Z, h, np.reshape(prediction, (5000, 1)))
+    return (A, Z, h, np.reshape(prediction, (m, 1)))
 
 def backwards_propagation(thetasVector, X, Y, layerStructure, num_labels, lamb):
     m = X.shape[0]
@@ -124,7 +124,7 @@ def train(X, Y, layerStructure, num_labels, lamb):
 
     fmin = minimize(fun = backwards_propagation, x0 = thetasVector,
                     args = (X, Y_onehot, layerStructure, num_labels, lamb), method = 'TNC',
-                    jac = True, options = {'maxiter': 70})
+                    jac = True, options = {'maxiter': 10})
 
     thetas = unVectorize(fmin['x'], layerStructure)
 
