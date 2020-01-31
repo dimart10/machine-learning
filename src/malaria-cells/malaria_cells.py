@@ -1,6 +1,7 @@
 import os
 import argparse
 import sys
+import time
 sys.path.append('../')
 sys.path.append('../../utils')
 
@@ -18,7 +19,7 @@ import neural_networks.neural_network as NeuralNetwork
 import regression.regresion_logistic_regularized as LogRegressionRegularized
 import svm.svm as SVM
 
-
+# Paths
 DATA_PATH = "../../data/heavy/malaria-cells/"
 PARASITIZED_FOLDER = "Parasitized/"
 UNINFECTED_FOLDER = "Uninfected/"
@@ -30,17 +31,19 @@ PARASITIZED_PATH = DATA_PATH + PARASITIZED_FOLDER
 UNINFECTED_PATH = DATA_PATH + UNINFECTED_FOLDER
 CACHE_PATH = DATA_PATH + CACHE_FOLDER
 
+# Image configuration
 FILE_EXTENSION = ".png"
 CACHE_EXTENSION = ".npy"
-IMAGE_WIDTH = 60
-IMAGE_HEIGHT = 60
+IMAGE_WIDTH = 25
+IMAGE_HEIGHT = 25
 
-TRAINING_BATCH = 1000
-VAL_BATCH = 300
-TEST_BATCH = 500
+# Batch sizes
+DEFAULT_TRAINING_BATCH = 2000
+DEFAULT_VAL_BATCH = 300
+DEFAULT_TEST_BATCH = 1000
 
 # Load & preprocess data
-def loadData(cache = True):
+def loadData(trainingBatch, testBatch, valBatch, cache = True):
     print("\nLoading data...")
 
     # First, check if the data has already been cached, if so load it and return
@@ -68,16 +71,14 @@ def loadData(cache = True):
         # Load every image, resizes it to 80x80 and saves it as a 1D array
         parasitized = []
         for filename in parasitized_filenames:
-            temp = cv2.imread(PARASITIZED_PATH + filename)
-            temp = cv2.resize(temp, dsize=(IMAGE_WIDTH, IMAGE_HEIGHT), interpolation=cv2.INTER_CUBIC)
-            parasitized.append(temp.ravel())
+            image = formatImage(cv2.imread(PARASITIZED_PATH + filename))
+            parasitized.append(image.ravel())
         parasitized = np.array(parasitized)
 
         uninfected = []
         for filename in uninfected_filenames:
-            temp = cv2.imread(UNINFECTED_PATH + filename)
-            temp = cv2.resize(temp, dsize=(IMAGE_WIDTH, IMAGE_HEIGHT), interpolation=cv2.INTER_CUBIC)
-            uninfected.append(temp.ravel())
+            image = formatImage(cv2.imread(UNINFECTED_PATH + filename))
+            uninfected.append(image.ravel())
         uninfected = np.array(uninfected)
 
         # Cache the parsed data to avoid reading the images on every execution
@@ -92,22 +93,33 @@ def loadData(cache = True):
 
     # Split the images into the different sets
     startIndex = 0
-    trainingSet = formatData(parasitized[:TRAINING_BATCH,:],
-                             uninfected[:TRAINING_BATCH,:])
+    trainingSet = formatData(parasitized[:trainingBatch,:],
+                             uninfected[:trainingBatch,:])
 
-    startIndex += TRAINING_BATCH
-    validationSet = formatData(parasitized[startIndex:startIndex + VAL_BATCH,:],
-                               uninfected[startIndex:startIndex + VAL_BATCH,:])
+    startIndex += trainingBatch
+    validationSet = formatData(parasitized[startIndex:startIndex + valBatch,:],
+                               uninfected[startIndex:startIndex + valBatch,:])
 
-    startIndex += VAL_BATCH
-    testSet = formatData(parasitized[startIndex:startIndex + TEST_BATCH,:],
-                         uninfected[startIndex:startIndex + TEST_BATCH,:])
+    startIndex += valBatch
+    testSet = formatData(parasitized[startIndex:startIndex + testBatch,:],
+                         uninfected[startIndex:startIndex + testBatch,:])
 
     return (True, trainingSet, validationSet, testSet)
+
+def formatImage(image):
+    formatted = cv2.resize(image, dsize=(IMAGE_WIDTH, IMAGE_HEIGHT), interpolation=cv2.INTER_CUBIC)
+    formatted = cv2.cvtColor(formatted, cv2.COLOR_BGR2GRAY) # Now use grayscale
+    formatted[formatted < 50] = 0
+
+    return formatted
 
 # Returns the data loaded from disk in the standard format
 def formatData(parasitized, uninfected):
     n = parasitized.shape[1]
+
+    # Normalization
+    parasitized = parasitized / 255
+    uninfected = uninfected / 255
 
     formatted = np.vstack((np.insert(parasitized, n, 1, 1),
                             np.insert(uninfected, n, 0, 1)))
@@ -115,45 +127,57 @@ def formatData(parasitized, uninfected):
 
     return formatted
 
-def logRegression(data, verbose, hideOutput, dontSave):
-    print("\n*** Running logistic regression algorithm ***\n")
-    thetas = LogRegression.train(data[0], data[1])
+def logRegressionRegularized(trainData, testData, verbose, lamb):
+    print("\n*** Running [regularized] logistic regression algorithm ***\n")
 
-    if (not hideOutput):
-        print("Error percentage: ", LogRegression.evaluate(thetas, X, Y)*100, "%")
+    elapsed = time.time()
+    thetas = LogRegressionRegularized.train(trainData[0], trainData[1], 1, lamb, verbose)
+    elapsed = time.time() - elapsed
 
-def logRegressionRegularized(data, verbose, hideOutput, dontSave, lamb):
-    print("\n*** Running regularized logistic regression algorithm ***\n")
+    print("Accuracy [ lamb = ", lamb, "]: ", LogRegressionRegularized.evaluate(thetas, testData[0], testData[1], 1)*100, "%")
+    print("Elapsed time: ", elapsed, "seconds")
 
-    thetas = LogRegressionRegularized.train(data[0], data[1], 1, lamb)
-
-    if (not hideOutput):
-        print("Error percentage: ", LogRegressionRegularized.evaluate(thetas, data[0], data[1], 1)*100, "%")
-
-def neuralNetwork(data, verbose, hideOutput, dontSave):
+def neuralNetwork(trainData, testData, verbose, hiddenLayers, lamb, maxIter):
     print("\n*** Running neural network ***\n")
-    thetas = NeuralNetwork.train(data[0], data[1], (IMAGE_WIDTH*IMAGE_HEIGHT*3, 50, 2), 2, 1)
 
-    if (not hideOutput):
-        print("Error percentage: ", NeuralNetwork.evaluate(thetas, data[0], data[1])*100, "%")
+    # Add the input and output layers to the hidden layers
+    if (isinstance(hiddenLayers, list)):
+        layers = hiddenLayers
+    else:
+        layers = list()
+        layers.append(hiddenLayers)
 
-def runSVM(data, verbose, hideOutput, dontSave, c, sigma):
+    layers.insert(0, IMAGE_WIDTH*IMAGE_HEIGHT)
+    layers.append(2) # Output with two possible tags
+    layers = tuple(layers)
+
+    elapsed = time.time()
+    thetas = NeuralNetwork.train(trainData[0], trainData[1], layers, 2, lamb, maxIter, verbose)
+    elapsed = time.time() - elapsed
+
+    print("Accuracy [ layers = ", layers, "; lambda = ", lamb, "; max iterations = ", maxIter,"]: ",
+            NeuralNetwork.evaluate(thetas, testData[0], testData[1])*100, "%")
+    print("Elapsed time: ", elapsed, "seconds")
+
+def runSVM(trainData, testData, verbose, c, sigma, degree, coef0, kernel):
     print("\n*** Running SVM ***\n")
-    trained_svm = SVM.train(data[0], data[1], c, sigma)
 
-    if (not hideOutput):
-        print("SVM Accuracy: ", SVM.test(trained_svm, data[0], data[1]) * 100)
+    elapsed = time.time()
+    trained_svm = SVM.train(trainData[0], trainData[1], c, sigma, degree, coef0, kernel, verbose)
+    elapsed = time.time() - elapsed
+
+    print("Accuracy [C = ", c, "; sigma = ", sigma, "; degree =", degree,"; coef0 = ", coef0, "]: ", SVM.test(trained_svm, testData[0], testData[1]) * 100, "%")
+    print("Elapsed time: ", elapsed, "seconds")
 
 # Run all algorithms in sequence
-def runAllAlgorithms(data, verbose, hideOutput, dontSave, lamb, c, sigma):
+def runAllAlgorithms(trainData, testData, verbose, lamb, c, sigma, hiddenLayers, lambNeural, maxIter):
     print("""
 *** Running all algorithms ***
 Depending on your machine specs, this may take some time\n""")
 
-    logRegression(data, verbose, hideOutput, dontSave)
-    logRegressionRegularized(data, verbose, hideOutput, dontSave, lambd)
-    neuralNetwork(data, verbose, hideOutput, dontSave)
-    runSVM(data, verbose, hideOutput, dontSave, svm_c, sigma)
+    logRegressionRegularized(trainData, testData, verbose, hideOutput, dontSave, lambd)
+    neuralNetwork(trainData, testData, verbose, hideOutput, dontSave)
+    runSVM(trainData, testData, verbose, hideOutput, dontSave, svm_c, sigma)
 
 # MAIN FUNCTION
 def main():
@@ -163,50 +187,55 @@ def main():
     # General
     parser.add_argument('--all', '-a', help='Run all algorithms. If no argument is passed, this is the default behaviour', action="store_true")
     parser.add_argument('--verbose', '-v', help='Output detailed information for each algorithm execution', action="store_true")
-    parser.add_argument('--hideOutput', '-o', help='Do not show result graphs & statistics for the executed algorithms', action="store_true")
-    parser.add_argument('--dontSave', '-d', help='Do not save to disk result graphs & statistics for the executed algorithms', action="store_true")
-    parser.add_argument('--noCache', '-c', help='Do not load cached data and do not cache generated data', action="store_true")
+    parser.add_argument('--noCache', '-c', help='Do not load cached data and do not cache generated image data', action="store_true")
 
     # Algorithms
-    parser.add_argument('--logRegression', '-l', help='Execute the logistic regression algorithm', action="store_true")
-    parser.add_argument('--logRegressionRegularized', '-r', help='Execute the regularized logistic regression algorithm', action="store_true")
+    parser.add_argument('--logRegression', '-l', help='Execute the [regularized] logistic regression algorithm', action="store_true")
     parser.add_argument('--neuralNetwork', '-n', help='Execute the neural network algorithm', action="store_true")
     parser.add_argument('--svm', '-s', help='Execute the support vector machine algorithm', action="store_true")
 
-    # Extra parameters
-    parser.add_argument('--lambd', help='Lambda parameter for the regularized logistic regression algorithm.', type=float, default=1)
-    parser.add_argument('--svm_c', help='C parameter for the SVM algorithm.', type=float, default=1)
-    parser.add_argument('--sigma', help='Sigma parameter for SVM algorithm.', type=float, default=1)
+    # Specific algorithm parameters
+    parser.add_argument('--lamb', help='Lambda parameter for the regularized logistic regression algorithm', type=float, default=1)
+    parser.add_argument('--svm_degree', help='Degree parameter for SVM algorithm (poly kernel)', type=int, default=3)
+    parser.add_argument('--svm_c', help='C parameter for the SVM algorithm', type=float, default=1)
+    parser.add_argument('--sigma', help='Sigma parameter for SVM algorithm', type=float, default=0.1)
+    parser.add_argument('--kernel', help='Kernel to use in the SVM algorithm', type=str, default='linear')
+    parser.add_argument('--coef0', help='coef0 parameter for SVM algorithm', type=float, default=0)
+    parser.add_argument('--maxIter', help='Maximum iterations while training the neural network', type=int, default=30)
+    parser.add_argument('--hiddenLayers', help='Number of neurons of each hidden layer of the neural network', nargs="+", type=int, default=(50))
+    parser.add_argument('--lambNeural', help='Lambda parameter for the neural network algorithm', type=float, default=1)
 
+    # Extra parameters
+    parser.add_argument('--trainingBatch', help='Total number of images of EACH GROUP used for training', type=int, default=DEFAULT_TRAINING_BATCH)
+    parser.add_argument('--testBatch', help='Total number of images of EACH GROUP used for test', type=int, default=DEFAULT_TEST_BATCH)
+    parser.add_argument('--valBatch', help='Total number of images of EACH GROUP used for validation', type=int, default=DEFAULT_VAL_BATCH)
 
     args = parser.parse_args()
     runAll = True
 
     # Data must always be loaded
-    loadResult = loadData(not args.noCache)
+    loadResult = loadData(args.trainingBatch, args.testBatch, args.valBatch, not args.noCache)
     if (not loadResult[0]):
         return
-    data = loadResult[1]
+    trainData = loadResult[1]
+    valData = loadResult[2] # Currently unused!
+    testData = loadResult[3]
 
     # Conditional execution depending on console arguments
     if (args.logRegression):
-        logRegression(data, args.verbose, args.hideOutput, args.dontSave)
-        runAll = False;
-
-    if (args.logRegressionRegularized):
-        logRegressionRegularized(data, args.verbose, args.hideOutput, args.dontSave, args.lambd)
+        logRegressionRegularized(trainData, testData, args.verbose, args.lamb)
         runAll = False;
 
     if (args.neuralNetwork):
-        neuralNetwork(data, args.verbose, args.hideOutput, args.dontSave)
+        neuralNetwork(trainData, testData, args.verbose, args.hiddenLayers, args.lambNeural, args.maxIter)
         runAll = False;
 
     if (args.svm):
-        runSVM(data, args.verbose, args.hideOutput, args.dontSave, args.svm_c, args.sigma)
+        runSVM(trainData, testData, args.verbose, args.svm_c, args.sigma, args.svm_degree, args.coef0, args.kernel)
         runAll = False;
 
     if (runAll):
-        runAllAlgorithms(data, args.verbose, args.hideOutput, args.dontSave, args.lambd, args.svm_c, args.sigma)
+        runAllAlgorithms(trainData, testData, args.verbose, args.lamb, args.svm_c, args.sigma, args.hiddenLayers, args.lambNeural, args.maxIter)
 
 if __name__ == "__main__":
     main()

@@ -64,9 +64,9 @@ def evaluate(thetas, X, Y, degree):
 
     errors = (passed_missed + failed_missed)
 
-    return errors/(result.shape[0])
+    return (result.shape[0] - errors) / (result.shape[0])
 
-def train(X, Y, degree=2, lamb=1):
+def train(X, Y, degree=2, lamb=1, verbose = True):
     poly = PolynomialFeatures(degree)
     X_poly = poly.fit_transform(X)
 
@@ -74,7 +74,7 @@ def train(X, Y, degree=2, lamb=1):
     n = np.shape(X_poly)[1]
 
     thetas = np.zeros((n, 1), dtype=float)
-    result = opt.fmin_tnc(func=cost, x0=thetas, fprime=gradient, args=(X_poly, Y, lamb), messages=True)
+    result = opt.fmin_tnc(func=cost, x0=thetas, fprime=gradient, args=(X_poly, Y, lamb), disp = 5 if verbose else 0)
     thetas = result[0]
 
     return thetas
@@ -87,7 +87,7 @@ def main():
 
     thetas = train(X, Y)
 
-    print("Error percentage: ", evaluate(thetas, X, Y, 2)*100, "%")
+    print("Accuracy: ", evaluate(thetas, X, Y, 2)*100, "%")
     show_decision_boundary(thetas, X, Y, poly)
 
 

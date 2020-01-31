@@ -109,13 +109,13 @@ def unVectorize(vector, layerStructure):
 
     return np.array(temp)
 
-def train(X, Y, layerStructure, num_labels, lamb):
+def train(X, Y, layerStructure, num_labels, lamb, maxIter, verbose = True):
     # Number of examples
     m = X.shape[0]
 
     Y_onehot = np.zeros((m, num_labels))
     for i in range(m):
-            Y_onehot[i][Y[i]] = 1
+            Y_onehot[i][int(Y[i])] = 1
 
     thetas = []
     for i in range(len(layerStructure)-1):
@@ -124,7 +124,7 @@ def train(X, Y, layerStructure, num_labels, lamb):
 
     fmin = minimize(fun = backwards_propagation, x0 = thetasVector,
                     args = (X, Y_onehot, layerStructure, num_labels, lamb), method = 'TNC',
-                    jac = True, options = {'maxiter': 10})
+                    jac = True, options = {'maxiter': maxIter, 'disp': verbose})
 
     thetas = unVectorize(fmin['x'], layerStructure)
 
@@ -135,7 +135,7 @@ def main():
     X, Y = data['X'], data['y']
     Y = Y-1
 
-    thetas = train(X, Y, (400, 25, 10), 10, 1)
+    thetas = train(X, Y, (400, 25, 10), 10, 1, 50)
     print("Precision:", evaluate(thetas, X, Y)*100, "%")
 
 if __name__ == "__main__":

@@ -20,15 +20,14 @@ def showBoundary(svm, X, Y):
     plt.savefig('images/svm.png')
     plt.show()
 
-def test(svm, X, Y, showResults=False):
+def test(svm, X, Y):
     prediction = svm.predict(X)
     accuracy = (prediction[:,np.newaxis] == Y).sum() / X.shape[0]
-    if (showResults): showBoundary(svm)
 
     return accuracy
 
-def train(X, Y, C, sigma):
-    svm = SVC(kernel='rbf', C=C, gamma=1 / (2*sigma**2))
+def train(X, Y, C, sigma, degree = 3, coef0 = 0, kernel = 'rbf', verbose = True):
+    svm = SVC(kernel=kernel, C=C, gamma=1 / (2*sigma**2), verbose=verbose, degree=degree, coef0=coef0)
     svm.fit(X, Y.ravel())
 
     return svm

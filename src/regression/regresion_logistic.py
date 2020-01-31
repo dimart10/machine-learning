@@ -65,12 +65,12 @@ def evaluate(thetas, X, Y):
 
     errors = (passed_missed + failed_missed)
 
-    return errors/(result.shape[0])
+    return (result.shape[0] - errors) / (result.shape[0])
 
-def train(X, Y):
+def train(X, Y, verbose = True):
     XOnes = Preprocessing.addInitialOnes(X)
     thetas = np.zeros((XOnes.shape[1], 1), dtype=float)
-    result = opt.fmin_tnc(func=cost, x0=thetas, fprime=gradient, args=(XOnes, Y))
+    result = opt.fmin_tnc(func=cost, x0=thetas, fprime=gradient, args=(XOnes, Y), disp = 5 if verbose else 0)
     thetas = result[0]
 
     return thetas
@@ -81,7 +81,7 @@ def main():
     X, Y, m, n = Preprocessing.separate_data(data)
     thetas = train(X, Y)
 
-    print("Error percentage: ", evaluate(thetas, X, Y)*100, "%")
+    print("Accuracy: ", evaluate(thetas, X, Y)*100, "%")
     show_border(thetas, X, Y)
 
 
