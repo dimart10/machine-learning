@@ -14,7 +14,6 @@ import data_preprocessing as Preprocessing
 from PIL import Image
 
 # Custom algorithms
-import regression.regresion_logistic as LogRegression
 import neural_networks.neural_network as NeuralNetwork
 import regression.regresion_logistic_regularized as LogRegressionRegularized
 import svm.svm as SVM
@@ -39,8 +38,8 @@ IMAGE_HEIGHT = 25
 
 # Batch sizes
 DEFAULT_TRAINING_BATCH = 2000
-DEFAULT_VAL_BATCH = 300
-DEFAULT_TEST_BATCH = 1000
+DEFAULT_VAL_BATCH = 500
+DEFAULT_TEST_BATCH = 3000
 
 # Load & preprocess data
 def loadData(trainingBatch, testBatch, valBatch, cache = True):
@@ -196,11 +195,13 @@ def main():
 
     # Specific algorithm parameters
     parser.add_argument('--lamb', help='Lambda parameter for the regularized logistic regression algorithm', type=float, default=1)
+
     parser.add_argument('--svm_degree', help='Degree parameter for SVM algorithm (poly kernel)', type=int, default=3)
     parser.add_argument('--svm_c', help='C parameter for the SVM algorithm', type=float, default=1)
     parser.add_argument('--sigma', help='Sigma parameter for SVM algorithm', type=float, default=0.1)
     parser.add_argument('--kernel', help='Kernel to use in the SVM algorithm', type=str, default='linear')
     parser.add_argument('--coef0', help='coef0 parameter for SVM algorithm', type=float, default=0)
+
     parser.add_argument('--maxIter', help='Maximum iterations while training the neural network', type=int, default=30)
     parser.add_argument('--hiddenLayers', help='Number of neurons of each hidden layer of the neural network', nargs="+", type=int, default=(50))
     parser.add_argument('--lambNeural', help='Lambda parameter for the neural network algorithm', type=float, default=1)
